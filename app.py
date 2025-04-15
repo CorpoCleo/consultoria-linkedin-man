@@ -21,7 +21,7 @@ AIRTABLE_TABLE_NAME = st.secrets["AIRTABLE_TABLE_NAME"]
 
 def analyser_texte(body, lien_tdr):
     links = re.findall(r"https?://\S+", body)
-    tdr_links = [l for l in links if "linkedin.com" not in l and len(l) < 200]
+    tdr_links = [l for l in links if len(l) < 200]
 
     infos = {
         "🎯 Organisation / Client": None,
@@ -49,24 +49,25 @@ def analyser_texte(body, lien_tdr):
                     infos["🎯 Organisation / Client"] = possible.strip()
                     break
 
-    # Deadline : détecter dans toutes les lignes avec ou sans mot-clé
+    # Deadline : détecter dans toutes les lignes (priorité lignes contenant "fecha")
     dates_valides = []
     for line in body.splitlines():
-        date_candidates = re.findall(
-            r"\b\d{1,2}\s+de\s+\w+(?:\s+\d{4})?|\d{1,2}/\d{1,2}(?:/\d{2,4})?|\d{1,2}-\d{1,2}(?:-\d{2,4})?",
-            line,
-            re.IGNORECASE
-        )
-        for raw in date_candidates:
-            try:
-                clean = raw.strip()
-                if not re.search(r"\d{4}", clean):
-                    clean += f" {datetime.now().year}"
-                parsed = parse(clean, fuzzy=True, dayfirst=True)
-                if parsed.date() >= datetime.now().date():
-                    dates_valides.append(parsed.strftime("%d %B %Y"))
-            except Exception as e:
-                print(f"⚠️ Erreur parsing deadline: {raw} -> {e}")
+        if "fecha" in line.lower() or "limite" in line.lower() or "date" in line.lower():
+            date_candidates = re.findall(
+                r"\b\d{1,2}\s+de\s+\w+(?:\s+\d{4})?|\d{1,2}/\d{1,2}(?:/\d{2,4})?|\d{1,2}-\d{1,2}(?:-\d{2,4})?",
+                line,
+                re.IGNORECASE
+            )
+            for raw in date_candidates:
+                try:
+                    clean = raw.strip()
+                    if not re.search(r"\d{4}", clean):
+                        clean += f" {datetime.now().year}"
+                    parsed = parse(clean, fuzzy=True, dayfirst=True)
+                    if parsed.date() >= datetime.now().date():
+                        dates_valides.append(parsed.strftime("%d %B %Y"))
+                except Exception as e:
+                    print(f"⚠️ Erreur parsing deadline: {raw} -> {e}")
     infos["Deadline"] = list(set(dates_valides))
 
     # Pays (ajout de Costa Rica)
