@@ -7,7 +7,7 @@ AIRTABLE_TABLE_NAME = st.secrets["AIRTABLE_TABLE_NAME"]
 
 AIRTABLE_URL = f"https://api.airtable.com/v0/{AIRTABLE_BASE_ID}/{AIRTABLE_TABLE_NAME}"
 HEADERS = {
-    "Authorization": f"Bearer {AIRTABLE_API_KEY}",
+    "Authorization": f"Bearer {AIRTABLE_TOKEN}",
     "Content-Type": "application/json"
 }
 
