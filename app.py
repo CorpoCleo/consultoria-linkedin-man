@@ -21,7 +21,7 @@ AIRTABLE_TABLE_NAME = st.secrets["AIRTABLE_TABLE_NAME"]
 
 def analyser_texte(body, lien_tdr):
     links = re.findall(r"https?://\S+", body)
-    tdr_links = [l for l in links if "linkedin.com" not in l and len(l) < 200]
+    tdr_links = [l for l in links if len(l) < 200]
 
     infos = {
         "🎯 Organisation / Client": None,
