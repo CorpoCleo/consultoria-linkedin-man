@@ -3,12 +3,14 @@ import re
 import requests
 from datetime import datetime
 from dateutil.parser import parse
+from PyPDF2 import PdfReader
 
 st.set_page_config(page_title="Consultoria - LinkedIn Parser", layout="centered")
 st.title("📋 Analyse de post LinkedIn")
-st.markdown("Colle ici le **texte complet** d’un post LinkedIn pour extraire les infos et les envoyer vers Airtable.")
+st.markdown("Colle ici le **texte complet** d’un post LinkedIn ou téléverse un fichier PDF pour extraire les infos et les envoyer vers Airtable.")
 
 texte = st.text_area("📝 Texte du post LinkedIn", height=300)
+fichier_pdf = st.file_uploader("📄 Ou téléverse un fichier PDF", type=["pdf"])
 lien_tdr = st.text_input("📎 Lien vers les TDR (optionnel)")
 bouton = st.button("🚀 Envoyer vers Airtable")
 
@@ -95,10 +97,20 @@ def envoyer_vers_airtable(donnees):
     else:
         st.error(f"❌ Erreur Airtable: {response.status_code} → {response.text}")
 
-if bouton and texte:
-    resultat = analyser_texte(texte, lien_tdr)
-    st.success("🎯 Extraction terminée. Données envoyées automatiquement.")
-    st.json(resultat)
-    envoyer_vers_airtable(resultat)
+# Priorité au PDF s’il est fourni
+if bouton:
+    contenu = texte
+    if fichier_pdf is not None:
+        try:
+            pdf_reader = PdfReader(fichier_pdf)
+            contenu = "\n".join(page.extract_text() or "" for page in pdf_reader.pages)
+        except Exception as e:
+            st.error(f"Erreur de lecture du PDF : {e}")
 
-
+    if contenu:
+        resultat = analyser_texte(contenu, lien_tdr)
+        st.success("🎯 Extraction terminée. Données envoyées automatiquement.")
+        st.json(resultat)
+        envoyer_vers_airtable(resultat)
+    else:
+        st.warning("📭 Aucun texte à analyser.")
