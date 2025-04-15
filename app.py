@@ -33,7 +33,7 @@ def analyser_texte(body, lien_tdr):
     # Email
     emails = re.findall(r"[\w\.-]+@[\w\.-]+\.[a-z]{2,}", body)
     if emails:
-        infos["Email de contact"] = emails[0]
+        infos["Email de contact"] = ", ".join(set(emails))
         domaine = emails[0].split("@")[1].split(".")[0]
         infos["🎯 Organisation / Client"] = domaine.capitalize()
 
@@ -45,11 +45,9 @@ def analyser_texte(body, lien_tdr):
                 infos["🎯 Organisation / Client"] = ligne.strip()
                 break
 
-    # Deadline
+    # Deadline (recherche large sans mots-clés)
     dates_valides = []
     for line in body.splitlines():
-        if not re.search(r"(date limite|fecha límite|deadline|fecha de cierre|limite de soumission)", line, re.IGNORECASE):
-            continue
         date_candidates = re.findall(
             r"\b\d{1,2}\s+de\s+\w+(?:\s+\d{4})?|\d{1,2}/\d{1,2}(?:/\d{2,4})?|\d{1,2}-\d{1,2}(?:-\d{2,4})?",
             line,
@@ -67,8 +65,8 @@ def analyser_texte(body, lien_tdr):
                 print(f"⚠️ Erreur parsing deadline: {raw} -> {e}")
     infos["Deadline"] = list(set(dates_valides))
 
-    # Pays
-    pays_match = re.findall(r"(?i)\b(?:en\s+|in\s+)?(Colombia|México|France|Perú|Tunisie|Chile|RDC|Honduras|Espagne|Argentine|Guatemala|Sénégal|Haïti|Maroc|Mali|Burkina Faso)\b", body)
+    # Pays (ajout de Costa Rica)
+    pays_match = re.findall(r"(?i)\b(?:en\s+|in\s+)?(Colombia|México|France|Perú|Tunisie|Chile|RDC|Honduras|Espagne|Argentine|Guatemala|Sénégal|Haïti|Maroc|Mali|Burkina Faso|Costa Rica)\b", body)
     if pays_match:
         infos["🌍 Pays"] = ", ".join(set([p.title() for p in pays_match]))
 
