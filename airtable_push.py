@@ -1,4 +1,5 @@
 import requests
+import streamlit as st 
 
 AIRTABLE_TOKEN = st.secrets["AIRTABLE_TOKEN"]
 AIRTABLE_BASE_ID = st.secrets["AIRTABLE_BASE_ID"]
