@@ -68,25 +68,23 @@ def analyser_texte(body, lien_tdr):
                     infos["🎯 Organisation / Client"] = possible.strip()
                     break
 
-    # Deadline
+    # Deadline : recherche dans tout le texte après traduction des mois
     dates_valides = []
-    for line in body.splitlines():
-        if "fecha" in line.lower() or "limite" in line.lower() or "date" in line.lower():
-            date_candidates = re.findall(
-                r"\b\d{1,2}\s+\w+(?:\s+\d{4})?|\d{1,2}/\d{1,2}(?:/\d{2,4})?",
-                line,
-                re.IGNORECASE
-            )
-            for raw in date_candidates:
-                try:
-                    clean = raw.strip()
-                    if not re.search(r"\d{4}", clean):
-                        clean += f" {datetime.now().year}"
-                    parsed = parse(clean, fuzzy=True, dayfirst=True)
-                    if parsed.date() >= datetime.now().date():
-                        dates_valides.append(parsed.strftime("%d %B %Y"))
-                except Exception as e:
-                    print(f"⚠️ Erreur parsing deadline: {raw} -> {e}")
+    date_candidates = re.findall(
+        r"\b\d{1,2}\s+(?:de\s+)?\w+(?:\s+\d{4})?|\d{1,2}/\d{1,2}(?:/\d{2,4})?|\d{1,2}-\d{1,2}(?:-\d{2,4})?",
+        body,
+        re.IGNORECASE
+    )
+    for raw in date_candidates:
+        try:
+            clean = raw.strip()
+            if not re.search(r"\d{4}", clean):
+                clean += f" {datetime.now().year}"
+            parsed = parse(clean, fuzzy=True, dayfirst=True)
+            if parsed.date() >= datetime.now().date():
+                dates_valides.append(parsed.strftime("%d %B %Y"))
+        except Exception as e:
+            print(f"⚠️ Erreur parsing deadline: {raw} -> {e}")
     infos["Deadline"] = list(set(dates_valides))
 
     # Pays
@@ -124,7 +122,8 @@ if bouton:
     if fichier_pdf is not None:
         try:
             pdf_reader = PdfReader(fichier_pdf)
-            contenu = "\n".join(page.extract_text() or "" for page in pdf_reader.pages)
+            contenu_pdf = "\n".join(page.extract_text() or "" for page in pdf_reader.pages)
+            contenu = contenu + "\n" + contenu_pdf
         except Exception as e:
             st.error(f"Erreur de lecture du PDF : {e}")
 
