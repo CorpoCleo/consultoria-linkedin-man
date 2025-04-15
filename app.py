@@ -44,6 +44,10 @@ def analyser_texte(body, lien_tdr):
             if re.match(r"[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+", ligne):
                 infos["🎯 Organisation / Client"] = ligne.strip()
                 break
+    # 📎 Lien TDR (exclure LinkedIn)
+    links = re.findall(r"https?://\S+", body)
+    tdr_links = [l for l in links if "linkedin.com" not in l and len(l) < 200]
+    infos["📎 Lien TDR"] = tdr_links
 
     # Deadline (recherche large sans mots-clés)
     dates_valides = []
