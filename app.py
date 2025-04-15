@@ -49,25 +49,24 @@ def analyser_texte(body, lien_tdr):
                     infos["🎯 Organisation / Client"] = possible.strip()
                     break
 
-    # Deadline (même sans mot-clé)
+    # Deadline : détecter dans toutes les lignes avec ou sans mot-clé
     dates_valides = []
     for line in body.splitlines():
-        if re.search(r"(fecha|limite|deadline|limit[eé])", line, re.IGNORECASE):
-            date_candidates = re.findall(
-                r"\b\d{1,2}\s+de\s+\w+(?:\s+\d{4})?|\d{1,2}/\d{1,2}(?:/\d{2,4})?|\d{1,2}-\d{1,2}(?:-\d{2,4})?",
-                line,
-                re.IGNORECASE
-            )
-            for raw in date_candidates:
-                try:
-                    clean = raw.strip()
-                    if not re.search(r"\d{4}", clean):
-                        clean += f" {datetime.now().year}"
-                    parsed = parse(clean, fuzzy=True, dayfirst=True)
-                    if parsed.date() >= datetime.now().date():
-                        dates_valides.append(parsed.strftime("%d %B %Y"))
-                except Exception as e:
-                    print(f"⚠️ Erreur parsing deadline: {raw} -> {e}")
+        date_candidates = re.findall(
+            r"\b\d{1,2}\s+de\s+\w+(?:\s+\d{4})?|\d{1,2}/\d{1,2}(?:/\d{2,4})?|\d{1,2}-\d{1,2}(?:-\d{2,4})?",
+            line,
+            re.IGNORECASE
+        )
+        for raw in date_candidates:
+            try:
+                clean = raw.strip()
+                if not re.search(r"\d{4}", clean):
+                    clean += f" {datetime.now().year}"
+                parsed = parse(clean, fuzzy=True, dayfirst=True)
+                if parsed.date() >= datetime.now().date():
+                    dates_valides.append(parsed.strftime("%d %B %Y"))
+            except Exception as e:
+                print(f"⚠️ Erreur parsing deadline: {raw} -> {e}")
     infos["Deadline"] = list(set(dates_valides))
 
     # Pays (ajout de Costa Rica)
