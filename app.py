@@ -21,7 +21,7 @@ AIRTABLE_TABLE_NAME = st.secrets["AIRTABLE_TABLE_NAME"]
 
 def analyser_texte(body, lien_tdr):
     links = re.findall(r"https?://\S+", body)
-    tdr_links = [l for l in links if len(l) < 200]
+    tdr_links = [l for l in links if "linkedin.com" not in l and len(l) < 200]
 
     infos = {
         "🎯 Organisation / Client": None,
@@ -40,32 +40,34 @@ def analyser_texte(body, lien_tdr):
         domaine = emails[0].split("@")[1].split(".")[0]
         infos["🎯 Organisation / Client"] = domaine.capitalize()
 
-    # Fallback organisation : première ligne avec majuscules
+    # Fallback organisation : ligne avec mot-clé et majuscule
     if not infos["🎯 Organisation / Client"]:
-        lignes = body.splitlines()
-        for ligne in lignes:
-            if re.match(r"[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+", ligne):
-                infos["🎯 Organisation / Client"] = ligne.strip()
-                break
+        for line in body.splitlines():
+            if re.search(r"(Convocatoria|Appel|Consultance|Consultoría).*?[A-ZÉ][a-zéèê]+", line):
+                possible = re.sub(r".*?–\s*", "", line)
+                if len(possible.split()) <= 5:
+                    infos["🎯 Organisation / Client"] = possible.strip()
+                    break
 
-    # Deadline (recherche large sans mots-clés)
+    # Deadline (même sans mot-clé)
     dates_valides = []
     for line in body.splitlines():
-        date_candidates = re.findall(
-            r"\b\d{1,2}\s+de\s+\w+(?:\s+\d{4})?|\d{1,2}/\d{1,2}(?:/\d{2,4})?|\d{1,2}-\d{1,2}(?:-\d{2,4})?",
-            line,
-            re.IGNORECASE
-        )
-        for raw in date_candidates:
-            try:
-                clean = raw.strip()
-                if not re.search(r"\d{4}", clean):
-                    clean += f" {datetime.now().year}"
-                parsed = parse(clean, fuzzy=True, dayfirst=True)
-                if parsed.date() >= datetime.now().date():
-                    dates_valides.append(parsed.strftime("%d %B %Y"))
-            except Exception as e:
-                print(f"⚠️ Erreur parsing deadline: {raw} -> {e}")
+        if re.search(r"(fecha|limite|deadline|limit[eé])", line, re.IGNORECASE):
+            date_candidates = re.findall(
+                r"\b\d{1,2}\s+de\s+\w+(?:\s+\d{4})?|\d{1,2}/\d{1,2}(?:/\d{2,4})?|\d{1,2}-\d{1,2}(?:-\d{2,4})?",
+                line,
+                re.IGNORECASE
+            )
+            for raw in date_candidates:
+                try:
+                    clean = raw.strip()
+                    if not re.search(r"\d{4}", clean):
+                        clean += f" {datetime.now().year}"
+                    parsed = parse(clean, fuzzy=True, dayfirst=True)
+                    if parsed.date() >= datetime.now().date():
+                        dates_valides.append(parsed.strftime("%d %B %Y"))
+                except Exception as e:
+                    print(f"⚠️ Erreur parsing deadline: {raw} -> {e}")
     infos["Deadline"] = list(set(dates_valides))
 
     # Pays (ajout de Costa Rica)
