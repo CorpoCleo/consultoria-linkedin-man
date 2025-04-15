@@ -11,7 +11,7 @@ st.markdown("Colle ici le **texte complet** d’un post LinkedIn ou téléverse 
 
 texte = st.text_area("📝 Texte du post LinkedIn", height=300)
 fichier_pdf = st.file_uploader("📄 Ou téléverse un fichier PDF", type=["pdf"])
-lien_tdr = st.text_input("📎 Lien vers les TDR (optionnel)")
+lien_tdr = st.text_input("🔗 Lien du post LinkedIn ou TDR")
 bouton = st.button("🚀 Envoyer vers Airtable")
 
 # Chargement des secrets
@@ -20,10 +20,13 @@ AIRTABLE_BASE_ID = st.secrets["AIRTABLE_BASE_ID"]
 AIRTABLE_TABLE_NAME = st.secrets["AIRTABLE_TABLE_NAME"]
 
 def analyser_texte(body, lien_tdr):
+    links = re.findall(r"https?://\S+", body)
+    tdr_links = [l for l in links if "linkedin.com" not in l and len(l) < 200]
+
     infos = {
         "🎯 Organisation / Client": None,
-        "🔗 Lien": "Texte libre",
-        "📎 Lien TDR": [lien_tdr] if lien_tdr else [],
+        "🔗 Lien": lien_tdr or (links[0] if links else "Texte libre"),
+        "📎 Lien TDR": tdr_links,
         "🌍 Pays": None,
         "📅 Date de publication": None,
         "Deadline": [],
@@ -44,10 +47,6 @@ def analyser_texte(body, lien_tdr):
             if re.match(r"[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+", ligne):
                 infos["🎯 Organisation / Client"] = ligne.strip()
                 break
-    # 📎 Lien TDR (exclure LinkedIn)
-    links = re.findall(r"https?://\S+", body)
-    tdr_links = [l for l in links if "linkedin.com" not in l and len(l) < 200]
-    infos["📎 Lien TDR"] = tdr_links
 
     # Deadline (recherche large sans mots-clés)
     dates_valides = []
