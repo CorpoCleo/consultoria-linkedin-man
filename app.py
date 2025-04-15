@@ -19,7 +19,26 @@ AIRTABLE_TOKEN = st.secrets["AIRTABLE_TOKEN"]
 AIRTABLE_BASE_ID = st.secrets["AIRTABLE_BASE_ID"]
 AIRTABLE_TABLE_NAME = st.secrets["AIRTABLE_TABLE_NAME"]
 
+def traduire_mois(body):
+    mois_espagnol = {
+        "enero": "january", "febrero": "february", "marzo": "march",
+        "abril": "april", "mayo": "may", "junio": "june",
+        "julio": "july", "agosto": "august", "septiembre": "september",
+        "octubre": "october", "noviembre": "november", "diciembre": "december"
+    }
+    mois_francais = {
+        "janvier": "january", "février": "february", "mars": "march",
+        "avril": "april", "mai": "may", "juin": "june",
+        "juillet": "july", "août": "august", "septembre": "september",
+        "octobre": "october", "novembre": "november", "décembre": "december"
+    }
+    for source_dict in [mois_espagnol, mois_francais]:
+        for local, eng in source_dict.items():
+            body = re.sub(rf"\b{local}\b", eng, body, flags=re.IGNORECASE)
+    return body
+
 def analyser_texte(body, lien_tdr):
+    body = traduire_mois(body)
     links = re.findall(r"https?://\S+", body)
     tdr_links = [l for l in links if len(l) < 200]
 
@@ -49,12 +68,12 @@ def analyser_texte(body, lien_tdr):
                     infos["🎯 Organisation / Client"] = possible.strip()
                     break
 
-    # Deadline : détecter dans toutes les lignes (priorité lignes contenant "fecha")
+    # Deadline
     dates_valides = []
     for line in body.splitlines():
         if "fecha" in line.lower() or "limite" in line.lower() or "date" in line.lower():
             date_candidates = re.findall(
-                r"\b\d{1,2}\s+de\s+\w+(?:\s+\d{4})?|\d{1,2}/\d{1,2}(?:/\d{2,4})?|\d{1,2}-\d{1,2}(?:-\d{2,4})?",
+                r"\b\d{1,2}\s+\w+(?:\s+\d{4})?|\d{1,2}/\d{1,2}(?:/\d{2,4})?",
                 line,
                 re.IGNORECASE
             )
@@ -70,7 +89,7 @@ def analyser_texte(body, lien_tdr):
                     print(f"⚠️ Erreur parsing deadline: {raw} -> {e}")
     infos["Deadline"] = list(set(dates_valides))
 
-    # Pays (ajout de Costa Rica)
+    # Pays
     pays_match = re.findall(r"(?i)\b(?:en\s+|in\s+)?(Colombia|México|France|Perú|Tunisie|Chile|RDC|Honduras|Espagne|Argentine|Guatemala|Sénégal|Haïti|Maroc|Mali|Burkina Faso|Costa Rica)\b", body)
     if pays_match:
         infos["🌍 Pays"] = ", ".join(set([p.title() for p in pays_match]))
@@ -100,7 +119,6 @@ def envoyer_vers_airtable(donnees):
     else:
         st.error(f"❌ Erreur Airtable: {response.status_code} → {response.text}")
 
-# Priorité au PDF s’il est fourni
 if bouton:
     contenu = texte
     if fichier_pdf is not None:
